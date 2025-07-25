@@ -1,7 +1,7 @@
-import json
 from lib import utils
 from lib.config_handler import ConfigHandler
 from lib.err_parser import ErrorParser
+from copy import copy
 import re
 import os
 import subprocess
@@ -92,34 +92,37 @@ class RIFTCompiler:
         result = {"compiled_crates": [], "failed_crates": []}
         # Init counter and command templates
         i = 0
-        check_templ = "cargo check --package {0}"
-        compile_templ = "cargo build --package {0}"
+        check_templ = ["cargo", "check"]
+        compile_templ = ["cargo", "build"]
+
         if self.compile_debug:
-            check_templ += " --debug"
-            compile_templ += " --debug"
+            check_templ.append("--debug")
+            compile_templ.append("--debug")
         else:
-            check_templ += " --release"
-            compile_templ += " --release"
+            check_templ.append("--release")
+            compile_templ.append("--release")
+        check_templ.append("--package")
+        compile_templ.append("--package")
         err_parser = ErrorParser(self.logger)
         while i < len(target_crates):
 
-            # Reset mandatory variables
             crate = target_crates[i]
-            check_cmd = check_templ.format(crate)
-            compile_cmd = compile_templ.format(crate)
+            check_cmd = copy(check_templ)
+            check_cmd.append(crate)
+            compile_cmd = copy(compile_templ)
+            compile_cmd.append(crate)
             resultcode = 1
             stdout = None
             stderr = None
 
-            self.logger.debug(f"Executing {check_cmd} for crate {crate}")
+            self.logger.debug(f"Executing {' '.join(check_cmd)} for crate {crate}")
             try:
-                resultcode,stdout,stderr = utils.exec_cmd(check_cmd, capture_output=True, check=False)
+                resultcode,stdout,stderr = utils.exec_cmd(check_cmd, capture_output=True, check=True)
             except subprocess.CalledProcessError:
                 i += 1
                 self.logger.error(f"CalledProcessError occured for {check_cmd}, skipping crate = {crate}")
                 result["failed_crates"].append(crate)
                 continue
-
             if resultcode != 0 and self.autofix_errors:
                 fix_success = self.__fix_error(stderr, err_parser)
                 # We succeeded in fixing the issue? Try again!
@@ -133,9 +136,15 @@ class RIFTCompiler:
                     continue
             else:
                 # Compile now
-                self.logger.debug(f"cmd = {check_cmd} success! building the crate now ..")
-                resultcode,stdout,stderr = utils.exec_cmd(compile_cmd, capture_output=False, check=True)
-                self.logger.info(f"cmd = {compile_cmd} , resultcode = {resultcode}")
+                self.logger.debug(f"cmd = {' '.join(check_cmd)} success! building the crate now ..")
+                try:
+                    resultcode,stdout,stderr = utils.exec_cmd(compile_cmd, capture_output=False, check=True)
+                except subprocess.CalledProcessError:
+                    i += 1
+                    self.logger.error(f"CalledProcessError ocurred when trying to compile {crate}, skipping it ..")
+                    result["failed_crates"].append(crate)
+                    continue
+                self.logger.info(f"cmd = {' '.join(compile_cmd)} , resultcode = {resultcode}")
                 i += 1
                 result["compiled_crates"].append(crate)
 
@@ -166,7 +175,7 @@ class RIFTCompiler:
             self.logger.info(f"Unknown error occurred!")
             is_success = False
 
-        elif error_code == "INVALID_VERSION" or error_code == "INVALID_VERSION_FOR_REQ_P":
+        elif error_code in ["INVALID_VERSION", "INVALID_VERSION_FOR_REQ_P"]:
 
             self.logger.info(f"Invalid version detected for {entity}")
             version = self.cfg_handler.get_crate_version(entity)
@@ -204,8 +213,8 @@ class RIFTCompiler:
     def downgrade_crate(self, crate, old_ver, new_ver):
         """Downgrade a specific crate via cargo"""
         # cargo update -p native-tls@0.2.14 --precise ver
-        cmd = f"cargo update -p {crate}@{old_ver} --precise {new_ver}"
-        self.logger.info(f"Executing downgrade: {cmd}")
+        cmd = ["cargo", "update", "-p", f"{crate}@{old_ver}", "--precise", new_ver]
+        self.logger.info(f"Executing downgrade: {' '.join(cmd)}")
         resultcode,stdout,stderr = utils.exec_cmd(cmd, capture_output=False)
         return resultcode == 0
 
@@ -213,14 +222,15 @@ class RIFTCompiler:
         return f"{self.arch}-{self.target_triple}"
 
     def add_target(self, target):
-        cmd = f"rustup target add {target}"
+        cmd = ["rustup", "target", "add", target]
         code, stdout, stderr = utils.exec_cmd(cmd, False)
         if code != 0:
             return 0
         return 1
     
     def get_added_targets(self):
-        cmd = "rustup target list"
+        # cmd = "rustup target list"
+        cmd = ["rustup", "target", "list"]
         output = []
         code, stdout, stderr = utils.exec_cmd(cmd, True)
         if code != 0:
@@ -235,7 +245,7 @@ class RIFTCompiler:
 
     def get_installed_toolchains(self):
         """List all installed toolchains."""
-        cmd = "rustup toolchain list"
+        cmd = ["rustup", "toolchain", "list"]
         output = []
         code, stdout, stderr = utils.exec_cmd(cmd, True)
         if code != 0:
@@ -246,9 +256,10 @@ class RIFTCompiler:
     
     def install_target_compiler(self, target_compiler):
         """Try installing a specific target compiler."""
-        cmd = f"rustup toolchain install {target_compiler}"
-        code, stdout, stderr = utils.exec_cmd(cmd, False)
+        cmd = ["rustup", "toolchain", "install", target_compiler]
+        code, stdout, stderr = utils.exec_cmd(cmd, True)
         if code != 0:
+            self.logger.error(stderr)
             return 0
         return 1
 
@@ -269,7 +280,3 @@ class RIFTCompiler:
                 crates_dict[m.group(1)] = f"\"={m.group(2)}\""
                 continue
         return crates_dict
-    
-        
-
-        

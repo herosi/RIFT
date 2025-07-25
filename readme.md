@@ -16,7 +16,7 @@ It consists of three core components:
 3) RIFT Diff Applier - IDA Plugin to apply generated binary diffing results on the binary
 
 Currently, the plugins are only developed for Ida Pro and tested on Ida Pro >=9.0.
-RIFT Generator was tested on Windows 10, 64 bit. 
+RIFT Generator was tested on Windows 10, 64 bit. We have also recently added support for Linux. RIFT was tested on Debian 12.
 
 RIFT was mainly tested on Windows malware so far, expanding its capabilities is ongoing.
 We are very much looking forward for contributions by the community.

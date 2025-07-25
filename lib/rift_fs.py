@@ -143,11 +143,12 @@ class RIFTFileSystem:
             self.logger.error(f"{self.cargo_proj_path} already exist! Cannot initialize cargo project")
             return False
 
-        cmd = f"cargo init {self.cargo_proj_path}"
-        self.logger.info(f"Executing {cmd}")
+        cmd = ["cargo", "init", self.cargo_proj_path]
+        self.logger.info(f"Executing {' '.join(cmd)}")
         code,stdout,stderr = utils.exec_cmd(cmd)
         if code != 0:
             self.logger.error(f"Could not initialize cargo project at {self.cargo_proj_path}")
+            self.logger.error(stderr)
             return False
         return True
 

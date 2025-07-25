@@ -171,7 +171,7 @@ def exec_cmd(cmd, capture_output=False, check=True):
         result = subprocess.run(cmd, check=check)
         return (result.returncode, None, None)
     else:
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, text=True)
         return (result.returncode, result.stdout, result.stderr)
 
 

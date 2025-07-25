@@ -1,5 +1,3 @@
-
-
 import re
 
 # error case: invalid version
@@ -101,7 +99,6 @@ class ErrorParser():
                 retval["error"] = "WRONG_EDITION2"
                 retval["entity"] = m.group(1)
                 break
-
 
             i += 1
         return retval 

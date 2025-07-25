@@ -1,6 +1,5 @@
 from lib import utils
 import os
-import subprocess
 
 class RIFTGenerator:
 
@@ -16,22 +15,22 @@ class RIFTGenerator:
         for coff_file in coff_files:
             pat_file = os.path.basename(coff_file)
             pat_file = os.path.join(dest, pat_file.replace(".o", ".pat"))
-            self.logger.debug(f"Executing {self.rift_config.pcf} {coff_file} {pat_file}")
-            # TODO: Decide if we want to capture output or not ..
-            utils.exec_cmd(f"{self.rift_config.pcf} {coff_file} {pat_file}", True, True)
-            # utils.exec_cmd(f"{self.rift_config.pcf} {coff_file} {pat_file}", False, True)
+            cmd = [self.rift_config.pcf, coff_file, pat_file]
+            self.logger.debug(f"Executing {' '.join(cmd)}")
+            utils.exec_cmd(cmd, True, True)
+ 
             pat_files.append(pat_file)
         return pat_files
     
     def gen_flirt(self, pat_folder, flirt_output, ignore_collisions=True):
         cur_path = os.getcwd()
-
-        cmd = f"{self.rift_config.sigmake} {'-r' if ignore_collisions else ''} * {flirt_output}"
+        cmd = [self.rift_config.sigmake]
+        if ignore_collisions:
+            cmd.append("-r")
+        cmd.extend(["*", flirt_output])
         os.chdir(pat_folder)
-        self.logger.debug(f"Executing {cmd}")
-        # TODO: Decide if we want to capture output or not
+        self.logger.debug(f"Executing {' '.join(cmd)}")
         utils.exec_cmd(cmd, True, True)
-        # utils.exec_cmd(cmd, False, True)
         os.chdir(cur_path)
         return True
     
@@ -76,7 +75,3 @@ class RIFTGenerator:
             self.logger.info(f"Generating {output_path}, target = {target_sqlite}, source = {src_sqlite}")
             utils.exec_cmd(["py", self.rift_config.diaphora, "-o", output_path, target_sqlite, src_sqlite], capture_output=False, check=False)
         return True
-
-
-
-    
