@@ -14,7 +14,7 @@ r_toml_file = re.compile(RE_TOML_FILE_PATTERN)
 RE_COMMIT_HASH = r"git_commit_hash = \"(.*)\".*"
 r_commit_hash = re.compile(RE_COMMIT_HASH)
 
-RE_RUST_VERSION = r"channel-rust-(.{1,10})\.toml"
+RE_RUST_VERSION = r"channel-rust-(.{1,30})\.toml"
 r_rust_version = re.compile(RE_RUST_VERSION)
 
 AWS_URL = "https://static.rust-lang.org/dist/"
@@ -67,6 +67,6 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", help="Input file, result of aws --no-sign-request s3 ls s3://static-rust-lang-org/dist/ >> out.txt")
+    parser.add_argument("-i", help="Input file, result of 'aws --no-sign-request s3 ls s3://static-rust-lang-org/dist/ >> out.txt'")
     parser.add_argument("-o", help="Output file name", default="data/rustc_tags.json")
     main(parser.parse_args())
