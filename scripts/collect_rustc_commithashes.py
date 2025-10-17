@@ -7,6 +7,11 @@ import argparse
 import re
 import requests
 import json
+import logging
+
+logging.basicConfig()
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 RE_TOML_FILE_PATTERN = r"(.{1,50}\s.{1,50})\s(\d+)\s(channel-rust.{1,20}.toml$)"
 r_toml_file = re.compile(RE_TOML_FILE_PATTERN)
@@ -21,13 +26,13 @@ AWS_URL = "https://static.rust-lang.org/dist/"
 
 def main(args):
     """Main."""
-    print(f"[debug] Starting build_chash_info.py, storing results in {args.o}")
+    logger.info(f"Collecting rustc hashes, storing results in {args.o}")
     lines = []
     json_output = {"exact_hash_to_version": []}
     with open(args.i, "r") as f:
         lines = f.readlines()
     
-    print(f"[debug] Total lines = {len(lines)}")
+    logger.info(f"Total lines = {len(lines)}")
     for line in lines:
 
         m = r_toml_file.match(line)
@@ -39,9 +44,12 @@ def main(args):
             m = r_rust_version.match(name)
             if m:
                 rust_version = m.group(1)
+            else:
+                logger.error(f"Failed grabbing rust version from {line}")
+                continue
             url = f"{AWS_URL}{name}"
 
-            print(f"[debug] Downloading TOML file from {url}")
+            logger.info(f"Downloading TOML file from {url}")
             response = requests.get(url)
             if response.status_code != 200:
                 continue
@@ -67,6 +75,6 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", help="Input file, result of 'aws --no-sign-request s3 ls s3://static-rust-lang-org/dist/ >> out.txt'")
-    parser.add_argument("-o", help="Output file name", default="data/rustc_tags.json")
+    parser.add_argument("-i", help="Input file, result of aws --no-sign-request s3 ls s3://static-rust-lang-org/dist/ >> out.txt", required=True)
+    parser.add_argument("-o", help="Output file name", default="./rustc_hashes.json")
     main(parser.parse_args())
