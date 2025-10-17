@@ -1,6 +1,8 @@
 import idaapi
-from PySide6 import QtCore, QtGui, QtWidgets
-
+try:
+    from PyQt5 import QtCore, QtGui, QtWidgets
+except ImportError:
+    from PySide6 import QtCore, QtGui, QtWidgets
 
 
 class RIFTFuncWindow(idaapi.PluginForm):
